@@ -1,0 +1,58 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN 5
+#define NUM_LEDS 12
+
+Adafruit_NeoPixel strip(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+
+int currentR = 0, currentG = 0, currentB = 0;
+int targetR = 0, targetG = 0, targetB = 0;
+
+void setup() {
+  Serial.begin(115200);
+  strip.begin();
+  strip.show();
+}
+
+// 🎨 Smooth transition
+void smoothFade() {
+  if (currentR != targetR)
+    currentR += (targetR > currentR) ? 1 : -1;
+
+  if (currentG != targetG)
+    currentG += (targetG > currentG) ? 1 : -1;
+
+  if (currentB != targetB)
+    currentB += (targetB > currentB) ? 1 : -1;
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    strip.setPixelColor(i, strip.Color(currentR, currentG, currentB));
+  }
+  strip.show();
+}
+
+// 📩 Read serial RGB
+void readSerial() {
+  if (Serial.available()) {
+    String data = Serial.readStringUntil('\n');
+    data.trim();
+
+    if (data == "off") {
+      targetR = targetG = targetB = 0;
+      return;
+    }
+
+    int r, g, b;
+    if (sscanf(data.c_str(), "%d,%d,%d", &r, &g, &b) == 3) {
+      targetR = constrain(r, 0, 255);
+      targetG = constrain(g, 0, 255);
+      targetB = constrain(b, 0, 255);
+    }
+  }
+}
+
+void loop() {
+  readSerial();
+  smoothFade();
+  delay(10);  // controls smoothness
+}
